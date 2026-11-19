@@ -103,13 +103,15 @@ def index():
     student = current_student()
     mine = {}
     capacity = {}
+    waitlist = {}
     for activity in activities:
         capacity[activity.id] = activity_svc.approved_count(activity.id)
+        waitlist[activity.id] = len(services()["registrations_repo"].waitlisted_of(activity.id))
         if student is not None:
             regs = services()["registrations_repo"].find_by_student(activity.id, student.id)
             mine[activity.id] = regs[0] if regs else None
     return render_template(
-        "index.html", activities=activities, mine=mine, approved=capacity
+        "index.html", activities=activities, mine=mine, approved=capacity, waitlist=waitlist
     )
 
 
@@ -123,15 +125,15 @@ def activity_detail(activity_id: int):
     my_regs = (
         svc["registrations_repo"].find_by_student(activity_id, student.id) if student else []
     )
-    attendees = [
-        svc["students"].get(r.student_id) for r in approved_regs
-    ]
+    attendees = [svc["students"].get(r.student_id) for r in approved_regs]
+    waitlist = svc["waitlist"].queue_of(activity_id)
     return render_template(
         "activity_detail.html",
         activity=activity,
         capacity=snap,
         my_regs=my_regs,
         attendees=attendees,
+        waitlist=waitlist,
     )
 
 
@@ -195,10 +197,30 @@ def admin_dashboard():
     stats = svc["activity"].stats()
     activities = svc["activity"].list_all()
     approved = {a.id: svc["activity"].approved_count(a.id) for a in activities}
+    waitlist = {
+        a.id: len(svc["registrations_repo"].waitlisted_of(a.id)) for a in activities
+    }
+    outbox = _recent_outbox()
     return render_template(
         "admin_dashboard.html", pending=rows, stats=stats, activities=activities,
-        approved=approved, failures=svc["failures"].list_all(),
+        approved=approved, waitlist=waitlist, failures=svc["failures"].list_all(),
+        outbox=outbox, channels=container()["notification"].channel_names,
     )
+
+
+def _recent_outbox(limit: int = 8) -> list[dict]:
+    """邮件渠道的“已投递”证据：列出最近写出的 .eml 文件。"""
+    from pathlib import Path
+
+    folder = Path(current_app.config["OUTBOX_DIR"])
+    if not folder.exists():
+        return []
+    files = sorted(folder.glob("*.eml"), key=lambda p: p.stat().st_mtime, reverse=True)[:limit]
+    return [
+        {"name": p.name, "size": p.stat().st_size,
+         "time": datetime.fromtimestamp(p.stat().st_mtime).strftime("%m-%d %H:%M:%S")}
+        for p in files
+    ]
 
 
 @bp.route("/admin/activities/create", methods=["POST"])

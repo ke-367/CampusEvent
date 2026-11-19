@@ -33,8 +33,9 @@ CREATE TABLE IF NOT EXISTS registrations (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     activity_id INTEGER NOT NULL REFERENCES activities(id),
     student_id  INTEGER NOT NULL REFERENCES students(id),
-    status      TEXT NOT NULL,                 -- pending / approved / rejected / cancelled
+    status      TEXT NOT NULL,                 -- pending / approved / waitlisted / rejected / cancelled
     policy_key  TEXT NOT NULL,                 -- 产生该记录的策略标识，便于审计
+    queue_no    INTEGER,                       -- 候补排队序号（需求变更新增，非候补记录为 NULL）
     remark      TEXT NOT NULL DEFAULT '',
     decided_by  TEXT,
     decided_at  TEXT,
@@ -42,10 +43,10 @@ CREATE TABLE IF NOT EXISTS registrations (
     updated_at  TEXT NOT NULL
 );
 
--- 同一学生对同一活动，最多一条“有效（待审核/已通过）”报名。
+-- 同一学生对同一活动，最多一条“有效（待审核/已通过/候补中）”报名。
 CREATE UNIQUE INDEX IF NOT EXISTS ux_registration_active
     ON registrations(activity_id, student_id)
-    WHERE status IN ('pending', 'approved');
+    WHERE status IN ('pending', 'approved', 'waitlisted');
 
 CREATE TABLE IF NOT EXISTS notifications (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,13 +114,30 @@ def transaction(conn: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
 
 
 def ensure_schema(db_path: str | None = None) -> None:
-    """建表（幂等）。传入路径时使用独立连接，便于测试与部署初始化。"""
+    """建表 + 增量迁移（幂等）。传入路径时使用独立连接，便于测试与部署初始化。"""
     path = db_path or current_app.config["DATABASE"]
     conn = connect(path)
     try:
         conn.executescript(SCHEMA)
+        _migrate_change_v2(conn)
     finally:
         conn.close()
+
+
+def _migrate_change_v2(conn: sqlite3.Connection) -> None:
+    """需求变更（change-v2）的增量迁移：候补序号列 + 有效报名唯一索引口径扩展。
+
+    只做“加列/重建索引”这类可回滚、可重复执行的变更，不改动历史数据语义。
+    """
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(registrations)")}
+    if "queue_no" not in columns:
+        conn.execute("ALTER TABLE registrations ADD COLUMN queue_no INTEGER")
+    conn.execute("DROP INDEX IF EXISTS ux_registration_active")
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_registration_active "
+        "ON registrations(activity_id, student_id) "
+        "WHERE status IN ('pending', 'approved', 'waitlisted')"
+    )
 
 
 def record_notification_failure(db_path: str, event_key: str, channel: str, error: str) -> None:

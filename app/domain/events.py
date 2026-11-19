@@ -68,3 +68,31 @@ class RegistrationCancelled(DomainEvent):
     @property
     def event_key(self) -> str:
         return f"cancelled:{self.registration.id}"
+
+
+@dataclass(frozen=True)
+class RegistrationWaitlisted(DomainEvent):
+    """候补入队（v2 新增事件）。"""
+
+    registration: Registration = None
+    activity: Activity = None
+    student: Student = None
+    name: str = "registration-waitlisted"
+
+    @property
+    def event_key(self) -> str:
+        return f"waitlisted:{self.registration.id}"
+
+
+@dataclass(frozen=True)
+class RegistrationPromoted(DomainEvent):
+    """候补转正（v2 新增事件）：由候补队列自动转为已通过。"""
+
+    registration: Registration = None
+    activity: Activity = None
+    student: Student = None
+    name: str = "registration-promoted"
+
+    @property
+    def event_key(self) -> str:
+        return f"promoted:{self.registration.id}"

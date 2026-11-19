@@ -201,7 +201,7 @@ def test_t12_notification_is_idempotent(app):
         bus = container()["bus"]
         bus.publish(event)
         bus.publish(event)
-        assert svc["messages"].count_for_event(event.event_key) == 1
+        assert svc["messages"].count_for_event(event.event_key, "inapp") == 1
 
 
 # ------------------------------------------------------------------ T13 持久化

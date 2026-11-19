@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-head">
   <h1>校园活动</h1>
-  <p class="muted">点击活动查看详情并报名。两类规则分别演示策略模式的两种实现。</p>
+  <p class="muted">点击活动查看详情并报名。报名规则由系统按活动的 registration_mode 自动匹配策略：直接报名 / 审核报名 / 候补报名。</p>
 </div>
 
 {% if not nav_student %}
@@ -26,6 +26,7 @@
         <li>地点：{{ a.location }}</li>
         <li>名额：<b>{{ cap }}/{{ a.capacity }}</b> 已通过
           {% if cap >= a.capacity %}<span class="badge full">已满</span>{% endif %}
+          {% if waitlist.get(a.id) %}<span class="badge wait">候补 {{ waitlist[a.id] }} 人</span>{% endif %}
         </li>
       </ul>
       <div class="activity-foot">

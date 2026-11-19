@@ -134,6 +134,7 @@ main { padding: 26px 20px 60px; }
 .mode { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; }
 .mode-direct { background: #e9f7f0; color: var(--ok); }
 .mode-approval { background: #eef3ff; color: var(--brand); }
+.mode-waitlist { background: #f3efff; color: #5b3fbe; }
 
 .meta { list-style: none; margin: 0; padding: 0; font-size: 13px; color: var(--muted); }
 .meta li { padding: 2px 0; }
@@ -142,10 +143,12 @@ main { padding: 26px 20px 60px; }
 
 .badge { display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: 11px; background: #eef3ff; color: var(--brand); }
 .badge.full { background: #fdecee; color: var(--err); }
+.badge.wait { background: #f3efff; color: #5b3fbe; }
 
 .status { padding: 2px 9px; border-radius: 999px; font-size: 12px; }
 .status-approved { background: #e9f7f0; color: var(--ok); }
 .status-pending { background: #fff6e6; color: var(--warn); }
+.status-waitlisted { background: #f3efff; color: #5b3fbe; }
 .status-rejected { background: #fdecee; color: var(--err); }
 .status-cancelled { background: #f0f3f8; color: var(--muted); }
 
@@ -159,6 +162,7 @@ main { padding: 26px 20px 60px; }
   border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
+  white-space: nowrap;
   transition: .15s;
 }
 .btn:hover { border-color: #cfd9e8; background: #fafbfe; text-decoration: none; }
@@ -187,9 +191,9 @@ input:focus, select:focus, textarea:focus { outline: 2px solid #d6e2ff; border-c
 .table th, .table td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
 .table th { color: var(--muted); font-weight: 500; font-size: 13px; }
 .table tr:last-child td { border-bottom: 0; }
-.table td.actions { display: flex; gap: 6px; align-items: center; }
+.table td.actions { display: flex; gap: 6px; align-items: center; white-space: nowrap; }
 .table td.actions form { display: flex; gap: 6px; align-items: center; }
-.table td.actions input { width: 130px; padding: 4px 8px; font-size: 13px; }
+.table td.actions input { width: 120px; padding: 4px 8px; font-size: 13px; }
 
 /* ---------- 消息 ---------- */
 .list { padding: 6px 0; }

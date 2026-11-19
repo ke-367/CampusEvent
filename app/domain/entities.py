@@ -20,6 +20,7 @@ class RegistrationMode(str, Enum):
 
     DIRECT = "direct"        # 直接报名：名额充足即“已通过”
     APPROVAL = "approval"    # 审核报名：提交后“待审核”，由管理员决定
+    WAITLIST = "waitlist"    # 候补报名：名额满则排队，有人取消自动转正（v2 新增）
 
 
 class RegistrationStatus(str, Enum):
@@ -27,6 +28,7 @@ class RegistrationStatus(str, Enum):
     APPROVED = "approved"
     REJECTED = "rejected"
     CANCELLED = "cancelled"
+    WAITLISTED = "waitlisted"   # 需求变更新增：名额满时进入候补队列
 
     @property
     def label(self) -> str:
@@ -38,10 +40,15 @@ STATUS_LABELS = {
     "approved": "已通过",
     "rejected": "已拒绝",
     "cancelled": "已取消",
+    "waitlisted": "候补中",
 }
 
 #: 有效报名状态：占用“同一学生同一活动只能有一条有效报名”这条业务约束。
-ACTIVE_STATUSES = (RegistrationStatus.PENDING.value, RegistrationStatus.APPROVED.value)
+ACTIVE_STATUSES = (
+    RegistrationStatus.PENDING.value,
+    RegistrationStatus.APPROVED.value,
+    RegistrationStatus.WAITLISTED.value,
+)
 
 #: 占用名额的状态：只有“已通过”占用名额，待审核不占。
 CAPACITY_STATUSES = (RegistrationStatus.APPROVED.value,)
@@ -73,7 +80,7 @@ class Activity:
 
     @property
     def mode_label(self) -> str:
-        return {"direct": "直接报名", "approval": "审核报名"}.get(
+        return {"direct": "直接报名", "approval": "审核报名", "waitlist": "候补报名"}.get(
             self.registration_mode, self.registration_mode
         )
 
@@ -90,6 +97,7 @@ class Registration:
     decided_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    queue_no: int | None = None
 
     @property
     def status_label(self) -> str:

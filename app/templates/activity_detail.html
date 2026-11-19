@@ -17,6 +17,9 @@
       <li>地点：<b>{{ activity.location }}</b></li>
       <li>名额：<b>{{ capacity.text }}</b>（仅“已通过”占用名额；待审核不占）
         {% if capacity.is_full %}<span class="badge full">已满</span>{% endif %}</li>
+      {% if activity.registration_mode == 'waitlist' %}
+        <li>当前候补：<b>{{ waitlist|length }}</b> 人（名额释放时按顺序自动转正）</li>
+      {% endif %}
     </ul>
 
     {% if activity.is_open(now) %}
@@ -32,7 +35,10 @@
         {% else %}
           <form method="post" action="{{ url_for('main.register', activity_id=activity.id) }}">
             <button class="btn primary" type="submit">
-              {% if activity.registration_mode == 'direct' %}立即报名{% else %}提交报名申请{% endif %}
+              {% if activity.registration_mode == 'direct' %}立即报名
+              {% elif activity.registration_mode == 'waitlist' %}
+                {% if capacity.is_full %}加入候补队列{% else %}立即报名{% endif %}
+              {% else %}提交报名申请{% endif %}
             </button>
           </form>
           {% if my_regs %}
@@ -64,9 +70,18 @@
       <h2>我的报名记录</h2>
       <ul class="history">
         {% for r in my_regs %}
-          <li>#{{ r.id }} · {{ r.status_label }} · {{ r.created_at.strftime('%m-%d %H:%M') }}</li>
+          <li>#{{ r.id }} · {{ r.status_label }}{% if r.queue_no %}（第 {{ r.queue_no }} 位）{% endif %} · {{ r.created_at.strftime('%m-%d %H:%M') }}</li>
         {% endfor %}
       </ul>
+    {% endif %}
+
+    {% if waitlist %}
+      <h2>候补队列（{{ waitlist|length }}）</h2>
+      <ol class="people">
+        {% for reg, s in waitlist %}
+          <li>{{ s.name if s else '学生' }}<span class="muted"> · 第 {{ reg.queue_no }} 位</span></li>
+        {% endfor %}
+      </ol>
     {% endif %}
   </aside>
 </div>
