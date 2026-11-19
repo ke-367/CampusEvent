@@ -1,0 +1,83 @@
+classDiagram
+    direction LR
+
+    class Activity {
+        +int id
+        +str title
+        +str category
+        +datetime start_time
+        +int capacity
+        +str registration_mode
+        +str status
+        +is_open(now) bool
+    }
+    class Student {
+        +int id
+        +str student_no
+        +str name
+        +str email
+    }
+    class Registration {
+        +int id
+        +str status
+        +str policy_key
+        +bool is_active
+    }
+    class RegistrationPolicy {
+        <<abstract>>
+        +str mode
+        +str key
+        +submit(SubmissionContext) PolicyDecision
+    }
+    class DirectRegistrationPolicy {
+        +submit(ctx) approved
+    }
+    class ApprovalRegistrationPolicy {
+        +submit(ctx) pending
+    }
+    class PolicyRegistry {
+        +for_mode(mode) RegistrationPolicy
+        +register(policy)
+    }
+    class CapacityRule {
+        +snapshot(activity, regs) CapacitySnapshot
+        +ensure_available(activity, regs)
+    }
+    class RegistrationService {
+        +register(activity_id, student)
+        +cancel(reg_id, student)
+    }
+    class ApprovalService {
+        +approve(reg_id, admin)
+        +reject(reg_id, admin, reason)
+    }
+    class EventBus {
+        +subscribe(handler)
+        +publish(event)
+    }
+    class NotificationService {
+        +handle(event)
+        +channel_names
+    }
+    class InAppChannel
+    class ActivityRepository
+    class RegistrationRepository
+    class MessageRepository
+
+    Activity "1" -- "*" Registration : 被报名
+    Student "1" -- "*" Registration : 报名
+    RegistrationService --> PolicyRegistry : 选择规则
+    RegistrationService --> CapacityRule : 公共规则
+    RegistrationService --> EventBus : 发布事件
+    RegistrationService --> ActivityRepository
+    RegistrationService --> RegistrationRepository
+    PolicyRegistry o-- RegistrationPolicy : 持有实现
+    RegistrationPolicy <|-- DirectRegistrationPolicy
+    RegistrationPolicy <|-- ApprovalRegistrationPolicy
+    DirectRegistrationPolicy --> CapacityRule : 提交时检查
+    ApprovalRegistrationPolicy ..> CapacityRule : 批准时检查
+    ApprovalService --> CapacityRule : 批准时二次检查
+    ApprovalService --> EventBus
+    EventBus --> NotificationService : 通知订阅者
+    NotificationService --> InAppChannel : 投递
+    NotificationService --> MessageRepository : 去重/落库

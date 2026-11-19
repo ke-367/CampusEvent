@@ -1,0 +1,33 @@
+%% 需求变更（CR-01）：候补入队与取消后的自动转正
+sequenceDiagram
+    autonumber
+    actor S1 as 学生A（已通过）
+    actor S2 as 学生B（候补）
+    participant RS as RegistrationService
+    participant WP as WaitlistRegistrationPolicy
+    participant CR as CapacityRule
+    participant DB as SQLite
+    participant EB as EventBus
+    participant NS as NotificationService
+    participant WS as WaitlistPromotionService
+
+    Note over S2,WP: 1. 名额已满时的候补入队
+    S2->>RS: register(activity_id=5, studentB)
+    RS->>WP: submit(context)
+    WP->>CR: snapshot(activity, regs) → 2/2 已满
+    WP-->>RS: PolicyDecision(status=waitlisted, queue_no=1)
+    RS->>DB: INSERT registration(status=waitlisted, queue_no=1)
+    RS->>EB: publish(RegistrationWaitlisted)
+    EB->>NS: handle → 「已进入候补队列（第 1 位）」
+
+    Note over S1,WS: 2. 有人取消 → 本服务作为第二个订阅者收到事件
+    S1->>RS: cancel(reg_id=2)
+    RS->>DB: UPDATE status=cancelled（提交事务）
+    RS->>EB: publish(RegistrationCancelled)
+    EB->>NS: handle → 通知学生A「报名已取消」
+    EB->>WS: handle(RegistrationCancelled)
+    WS->>CR: snapshot → 1/2（出现空位）
+    WS->>DB: 取队列队首（queue_no 最小）
+    WS->>DB: BEGIN → UPDATE status=approved<br/>remark=候补转正 → COMMIT
+    WS->>EB: publish(RegistrationPromoted)
+    EB->>NS: handle → 通知学生B「候补转正通知」+ 邮件

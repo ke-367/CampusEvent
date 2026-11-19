@@ -1,0 +1,32 @@
+%% 审核型活动：提交进入待审核 → 管理员批准时二次检查名额
+sequenceDiagram
+    autonumber
+    actor S as 学生
+    actor A as 管理员
+    participant RS as RegistrationService
+    participant AP as ApprovalRegistrationPolicy
+    participant AS as ApprovalService
+    participant CR as CapacityRule
+    participant DB as SQLite
+    participant EB as EventBus
+    participant NS as NotificationService
+
+    S->>RS: register(activity_id=2, student)
+    RS->>AP: submit(context)
+    AP-->>RS: PolicyDecision(status=pending)（待审核不占名额）
+    RS->>DB: INSERT registration(status=pending)
+    RS->>EB: publish(RegistrationSubmitted)
+    EB->>NS: handle → 站内消息「报名已提交，等待审核」
+
+    A->>AS: POST /admin/registrations/9/approve
+    AS->>DB: 读取报名（必须为 pending）
+    AS->>CR: ensure_available(activity, regs)
+    alt 名额已满
+        CR-->>AS: CapacityFullError（状态保持待审核）
+        AS-->>A: 页面提示「名额已满，无法再通过新的报名」
+    else 有空位
+        AS->>DB: BEGIN → UPDATE status=approved → COMMIT
+        AS->>EB: publish(RegistrationApproved)
+        EB->>NS: handle → 站内消息「报名审核通过」+ 邮件
+        NS-->>S: 通知到达
+    end

@@ -1,0 +1,30 @@
+%% 直接报名：提交即通过（含事件发布与通知）
+sequenceDiagram
+    autonumber
+    actor S as 学生
+    participant W as Web路由
+    participant RS as RegistrationService
+    participant P as DirectRegistrationPolicy
+    participant CR as CapacityRule
+    participant DB as SQLite
+    participant EB as EventBus
+    participant NS as NotificationService
+
+    S->>W: POST /activities/1/register
+    W->>RS: register(activity_id=1, student)
+    RS->>DB: 查询活动、有效报名
+    alt 活动已开始或已下架
+        RS-->>W: ActivityClosedError（页面提示）
+    else 已有待审核/已通过/候补中的报名
+        RS-->>W: DuplicateRegistrationError
+    else 可提交
+        RS->>P: submit(SubmissionContext)
+        P->>CR: ensure_available(activity, regs)
+        CR-->>P: 名额 11/120（未满）
+        P-->>RS: PolicyDecision(status=approved)
+        RS->>DB: BEGIN → INSERT registration → COMMIT
+        RS->>EB: publish(RegistrationSubmitted)
+        EB->>NS: handle(event)
+        NS->>DB: INSERT notifications(inapp/email)<br/>唯一索引(event_key,channel)去重
+        NS-->>S: 站内消息「报名成功」
+    end

@@ -29,3 +29,11 @@ logs/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# ---------- 生成过程中的中间文件 ----------
+docs/_build/
+docs/_ppt_crop/
+docs/_ppt_preview/
+docs/_report_preview.pdf
+_guide.txt
+_docx_extract/

@@ -1,0 +1,84 @@
+classDiagram
+    direction LR
+
+    class Activity {
+        +int id
+        +str title
+        +datetime start_time
+        +int capacity
+        +str registration_mode
+        +is_open(now) bool
+    }
+    class Student {
+        +int id
+        +str student_no
+        +str name
+        +str email
+    }
+    class Registration {
+        +int id
+        +str status
+        +str policy_key
+        +int queue_no
+        +bool is_active
+    }
+    class RegistrationPolicy {
+        <<abstract>>
+        +submit(SubmissionContext) PolicyDecision
+    }
+    class DirectRegistrationPolicy
+    class ApprovalRegistrationPolicy
+    class WaitlistRegistrationPolicy {
+        +submit(ctx) approved / waitlisted
+    }
+    class PolicyRegistry {
+        +for_mode(mode)
+    }
+    class CapacityRule {
+        +snapshot(activity, regs)
+        +ensure_available(activity, regs)
+    }
+    class RegistrationService {
+        +register(...)
+        +cancel(...)
+    }
+    class ApprovalService
+    class EventBus {
+        +subscribe(handler)
+        +publish(event)
+    }
+    class NotificationService {
+        +handle(event)
+    }
+    class WaitlistPromotionService {
+        +handle(RegistrationCancelled)
+        +queue_of(activity_id)
+    }
+    class NotificationChannel {
+        <<interface>>
+        +deliver(payload, repo) bool
+    }
+    class InAppChannel
+    class EmailChannel {
+        +deliver(payload, repo)
+    }
+
+    Activity "1" -- "*" Registration
+    Student "1" -- "*" Registration
+    RegistrationService --> PolicyRegistry
+    RegistrationService --> CapacityRule
+    RegistrationService --> EventBus
+    PolicyRegistry o-- RegistrationPolicy
+    RegistrationPolicy <|-- DirectRegistrationPolicy
+    RegistrationPolicy <|-- ApprovalRegistrationPolicy
+    RegistrationPolicy <|-- WaitlistRegistrationPolicy
+    DirectRegistrationPolicy --> CapacityRule
+    WaitlistRegistrationPolicy --> CapacityRule
+    ApprovalService --> CapacityRule
+    EventBus --> NotificationService : 订阅者1
+    EventBus --> WaitlistPromotionService : 订阅者2（CR-01）
+    WaitlistPromotionService --> CapacityRule : 空位判定
+    WaitlistPromotionService --> EventBus : 发布转正事件
+    NotificationService --> NotificationChannel : 渠道分发
+    NotificationChannel <|-- InAppChannel
+    NotificationChannel <|-- EmailChannel
