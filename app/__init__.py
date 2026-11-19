@@ -36,8 +36,9 @@ from .repositories import (
 )
 from .services.activity_service import ActivityService
 from .services.approval_service import ApprovalService
-from .services.notification_service import InAppChannel, NotificationService
+from .services.notification_service import EmailChannel, InAppChannel, NotificationService
 from .services.registration_service import RegistrationService
+from .services.waitlist_service import WaitlistPromotionService
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -74,13 +75,15 @@ def _build_container(app: Flask) -> None:
 
     notification = NotificationService(
         message_repo_factory=lambda: MessageRepository(get_db()),
-        channels=[InAppChannel()],
+        channels=[InAppChannel(), EmailChannel(app.config["OUTBOX_DIR"])],
         failure_recorder=lambda event_key, channel, error: record_notification_failure(
             app.config["DATABASE"], event_key, channel, error
         ),
         outbox_dir=app.config["OUTBOX_DIR"],
     )
     bus.subscribe(notification)
+    # 需求变更 CR-01：候补转正作为第二个订阅者接入，不侵入报名主流程
+    bus.subscribe(_WaitlistSubscription())
     # 兜底：订阅方在执行“消息文案/投递”时整体失败，也要留下痕迹
     bus.set_error_listener(
         lambda event, _handler, exc: record_notification_failure(
@@ -94,6 +97,13 @@ def _build_container(app: Flask) -> None:
         "capacity_rule": capacity_rule,
         "notification": notification,
     }
+
+
+class _WaitlistSubscription:
+    """把“按请求构建”的 WaitlistPromotionService 适配成启动期注册的订阅者。"""
+
+    def handle(self, event) -> None:
+        services()["waitlist"].handle(event)
 
 
 def container():
@@ -117,6 +127,10 @@ def services() -> dict:
             conn, activities, registrations, c["policy_registry"], c["bus"], c["capacity_rule"]
         ),
         "approval": ApprovalService(
+            conn, activities, registrations, StudentRepository(conn),
+            c["capacity_rule"], c["bus"],
+        ),
+        "waitlist": WaitlistPromotionService(
             conn, activities, registrations, StudentRepository(conn),
             c["capacity_rule"], c["bus"],
         ),

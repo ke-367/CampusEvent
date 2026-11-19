@@ -53,6 +53,15 @@ ACTIVITIES = [
         capacity=15,
         registration_mode="direct",
     ),
+    dict(
+        title="校园歌手大赛（决赛）",
+        description="需求变更新增的候补报名演示：名额 2 人，满员后自动进入候补队列，有人取消即按顺序转正。",
+        category="文艺",
+        location="大学生活动中心 音乐厅",
+        start_offset_hours=144,
+        capacity=2,
+        registration_mode="waitlist",
+    ),
 ]
 
 

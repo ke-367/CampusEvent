@@ -18,7 +18,7 @@ from ..domain.errors import (
     NotFoundError,
 )
 from ..domain.event_bus import EventBus
-from ..domain.events import RegistrationCancelled, RegistrationSubmitted
+from ..domain.events import RegistrationCancelled, RegistrationSubmitted, RegistrationWaitlisted
 from ..domain.policies import PolicyRegistry, SubmissionContext
 from ..domain.rules import CapacityRule
 from ..repositories import ActivityRepository, RegistrationRepository
@@ -74,11 +74,17 @@ class RegistrationService:
                 student_id=student.id,
                 status=decision.status,
                 policy_key=policy.key,
+                queue_no=decision.queue_no,
             )
 
         # 事务已提交，此时发布事件：通知失败不影响报名记录
+        event_cls = (
+            RegistrationWaitlisted
+            if registration.status == "waitlisted"
+            else RegistrationSubmitted
+        )
         self._bus.publish(
-            RegistrationSubmitted(
+            event_cls(
                 registration=registration, activity=activity, student=student, occurred_at=now
             )
         )

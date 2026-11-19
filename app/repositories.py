@@ -44,6 +44,7 @@ def _row_to_registration(row: sqlite3.Row) -> Registration:
         decided_at=_dt(row["decided_at"]),
         created_at=_dt(row["created_at"]),
         updated_at=_dt(row["updated_at"]),
+        queue_no=row["queue_no"] if "queue_no" in row.keys() else None,
     )
 
 
@@ -130,12 +131,15 @@ class RegistrationRepository:
         ).fetchone()
         return _row_to_registration(row) if row else None
 
-    def create(self, *, activity_id: int, student_id: int, status: str, policy_key: str) -> Registration:
+    def create(
+        self, *, activity_id: int, student_id: int, status: str, policy_key: str,
+        queue_no: int | None = None,
+    ) -> Registration:
         now = datetime.now().isoformat(timespec="seconds")
         cur = self._conn.execute(
-            "INSERT INTO registrations(activity_id, student_id, status, policy_key, created_at, updated_at) "
-            "VALUES (?,?,?,?,?,?)",
-            (activity_id, student_id, status, policy_key, now, now),
+            "INSERT INTO registrations(activity_id, student_id, status, policy_key, queue_no, "
+            "created_at, updated_at) VALUES (?,?,?,?,?,?,?)",
+            (activity_id, student_id, status, policy_key, queue_no, now, now),
         )
         registration = self.get(cur.lastrowid)
         assert registration is not None
@@ -163,7 +167,7 @@ class RegistrationRepository:
     def find_active(self, activity_id: int, student_id: int) -> Registration | None:
         row = self._conn.execute(
             "SELECT * FROM registrations WHERE activity_id = ? AND student_id = ? "
-            "AND status IN ('pending','approved') ORDER BY id DESC LIMIT 1",
+            "AND status IN ('pending','approved','waitlisted') ORDER BY id DESC LIMIT 1",
             (activity_id, student_id),
         ).fetchone()
         return _row_to_registration(row) if row else None
@@ -207,6 +211,23 @@ class RegistrationRepository:
             )
             out.append((_row_to_registration(row), activity))
         return out
+
+    def next_waitlisted(self, activity_id: int) -> Registration | None:
+        """候补队列队首：序号小的优先，同序号按报名时间。"""
+        row = self._conn.execute(
+            "SELECT * FROM registrations WHERE activity_id = ? AND status = 'waitlisted' "
+            "ORDER BY COALESCE(queue_no, 999999), created_at LIMIT 1",
+            (activity_id,),
+        ).fetchone()
+        return _row_to_registration(row) if row else None
+
+    def waitlisted_of(self, activity_id: int) -> list[Registration]:
+        rows = self._conn.execute(
+            "SELECT * FROM registrations WHERE activity_id = ? AND status = 'waitlisted' "
+            "ORDER BY COALESCE(queue_no, 999999), created_at",
+            (activity_id,),
+        ).fetchall()
+        return [_row_to_registration(r) for r in rows]
 
     def list_by_activity_status(self, activity_id: int, statuses: tuple[str, ...]) -> list[Registration]:
         placeholders = ",".join("?" for _ in statuses)
@@ -260,9 +281,11 @@ class MessageRepository:
         )
         return cur.rowcount > 0
 
-    def list_for_student(self, student_id: int) -> list[Notification]:
+    def list_for_student(self, student_id: int, channel: str = "inapp") -> list[Notification]:
+        """学生端只展示站内消息；邮件/其他渠道的投递记录用于审计，不重复打扰学生。"""
         rows = self._conn.execute(
-            "SELECT * FROM notifications WHERE student_id = ? ORDER BY id DESC", (student_id,)
+            "SELECT * FROM notifications WHERE student_id = ? AND channel = ? ORDER BY id DESC",
+            (student_id, channel),
         ).fetchall()
         return [
             Notification(
@@ -279,23 +302,31 @@ class MessageRepository:
             for r in rows
         ]
 
-    def unread_count(self, student_id: int) -> int:
+    def unread_count(self, student_id: int, channel: str = "inapp") -> int:
         row = self._conn.execute(
-            "SELECT COUNT(*) AS c FROM notifications WHERE student_id = ? AND read_at IS NULL",
-            (student_id,),
+            "SELECT COUNT(*) AS c FROM notifications WHERE student_id = ? AND channel = ? "
+            "AND read_at IS NULL",
+            (student_id, channel),
         ).fetchone()
         return int(row["c"])
 
-    def mark_all_read(self, student_id: int) -> None:
+    def mark_all_read(self, student_id: int, channel: str = "inapp") -> None:
         self._conn.execute(
-            "UPDATE notifications SET read_at = ? WHERE student_id = ? AND read_at IS NULL",
-            (datetime.now().isoformat(timespec="seconds"), student_id),
+            "UPDATE notifications SET read_at = ? WHERE student_id = ? AND channel = ? "
+            "AND read_at IS NULL",
+            (datetime.now().isoformat(timespec="seconds"), student_id, channel),
         )
 
-    def count_for_event(self, event_key: str) -> int:
-        row = self._conn.execute(
-            "SELECT COUNT(*) AS c FROM notifications WHERE event_key = ?", (event_key,)
-        ).fetchone()
+    def count_for_event(self, event_key: str, channel: str | None = None) -> int:
+        if channel is None:
+            row = self._conn.execute(
+                "SELECT COUNT(*) AS c FROM notifications WHERE event_key = ?", (event_key,)
+            ).fetchone()
+        else:
+            row = self._conn.execute(
+                "SELECT COUNT(*) AS c FROM notifications WHERE event_key = ? AND channel = ?",
+                (event_key, channel),
+            ).fetchone()
         return int(row["c"])
 
     def exists(self, event_key: str, channel: str) -> bool:

@@ -32,6 +32,7 @@ class SubmissionContext:
 class PolicyDecision:
     status: str                # RegistrationStatus 的 value
     message: str               # 面向学生的中文提示
+    queue_no: int | None = None   # 候补序号（仅候补规则使用）
 
     @property
     def requires_admin_decision(self) -> bool:
@@ -90,6 +91,40 @@ class ApprovalRegistrationPolicy(RegistrationPolicy):
         )
 
 
+class WaitlistRegistrationPolicy(RegistrationPolicy):
+    """候补报名（需求变更 CR-01 新增）：名额未满直接通过；已满则进入候补队列。
+
+    与另外两种规则的差别只有“满员时的处置方式”，因此复用同一条 CapacityRule，
+    没有改动 RegistrationService 的任何代码。
+    """
+
+    mode = RegistrationMode.WAITLIST.value
+    key = "policy.waitlist"
+    label = "候补报名"
+
+    def __init__(self, capacity_rule: CapacityRule):
+        self._capacity = capacity_rule
+
+    def submit(self, context: SubmissionContext) -> PolicyDecision:
+        snap = self._capacity.snapshot(context.activity, context.registrations)
+        if not snap.is_full:
+            return PolicyDecision(
+                status=RegistrationStatus.APPROVED.value,
+                message=f"报名成功，已占用名额（{snap.approved + 1}/{snap.capacity}）。",
+            )
+        queue_no = (
+            context.registrations.count_by_status(
+                context.activity.id, (RegistrationStatus.WAITLISTED.value,)
+            )
+            + 1
+        )
+        return PolicyDecision(
+            status=RegistrationStatus.WAITLISTED.value,
+            message=f"名额已满，你已进入候补队列（第 {queue_no} 位），有人取消时将按顺序转正。",
+            queue_no=queue_no,
+        )
+
+
 class PolicyRegistry:
     """策略注册表：按活动上的 registration_mode 选择实现，主流程不出现 if/elif。"""
 
@@ -99,6 +134,7 @@ class PolicyRegistry:
         for policy in (
             DirectRegistrationPolicy(capacity_rule),
             ApprovalRegistrationPolicy(capacity_rule),
+            WaitlistRegistrationPolicy(capacity_rule),
         ):
             self.register(policy)
 

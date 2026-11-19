@@ -66,13 +66,14 @@
 <section class="card">
   <h2>全部活动</h2>
   <table class="table">
-    <thead><tr><th>活动</th><th>规则</th><th>名额（已通过/上限）</th><th>开始时间</th><th>状态</th><th>操作</th></tr></thead>
+    <thead><tr><th>活动</th><th>规则</th><th>名额（已通过/上限）</th><th>候补</th><th>开始时间</th><th>状态</th><th>操作</th></tr></thead>
     <tbody>
     {% for a in activities %}
       <tr>
         <td>{{ a.title }}</td>
         <td><span class="mode mode-{{ a.registration_mode }}">{{ a.mode_label }}</span></td>
         <td>{{ approved.get(a.id, 0) }}/{{ a.capacity }}</td>
+        <td>{% if waitlist.get(a.id) %}{{ waitlist[a.id] }} 人{% else %}<span class="muted">—</span>{% endif %}</td>
         <td>{{ a.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
         <td>{% if a.status == 'published' %}在线{% else %}<span class="muted">已下架</span>{% endif %}</td>
         <td>
@@ -102,4 +103,20 @@
   </table>
 </section>
 {% endif %}
+
+<section class="card">
+  <h2>通知渠道与投递证据</h2>
+  <p class="muted">已启用渠道：{% for c in channels %}<span class="badge">{{ c }}</span> {% endfor %}
+    · 邮件渠道写入 <code>outbox/</code> 目录，可用于核对“通知确实发过”。</p>
+  <table class="table">
+    <thead><tr><th>邮件文件</th><th>大小（字节）</th><th>写出时间</th></tr></thead>
+    <tbody>
+    {% for f in outbox %}
+      <tr><td><code>{{ f.name }}</code></td><td>{{ f.size }}</td><td>{{ f.time }}</td></tr>
+    {% else %}
+      <tr><td colspan="3" class="muted">暂无邮件投递记录。</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
 {% endblock %}
