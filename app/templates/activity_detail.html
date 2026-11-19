@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ activity.title }} · CampusEvent{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ activity.title }}</h1>
+  <p class="muted">
+    <span class="tag">{{ activity.category }}</span>
+    <span class="mode mode-{{ activity.registration_mode }}">{{ activity.mode_label }}</span>
+  </p>
+</div>
+
+<div class="grid-detail">
+  <section class="card">
+    <p>{{ activity.description }}</p>
+    <ul class="meta big">
+      <li>开始时间：<b>{{ activity.start_time.strftime('%Y-%m-%d %H:%M') }}</b></li>
+      <li>地点：<b>{{ activity.location }}</b></li>
+      <li>名额：<b>{{ capacity.text }}</b>（仅“已通过”占用名额；待审核不占）
+        {% if capacity.is_full %}<span class="badge full">已满</span>{% endif %}</li>
+    </ul>
+
+    {% if activity.is_open(now) %}
+      {% if nav_student %}
+        {% if my_regs and my_regs[0].is_active %}
+          <div class="banner">
+            你已有一条「{{ my_regs[0].status_label }}」的报名，不能重复报名。
+          </div>
+          <form method="post" action="{{ url_for('main.cancel', registration_id=my_regs[0].id) }}">
+            <input type="hidden" name="next" value="{{ url_for('main.activity_detail', activity_id=activity.id) }}">
+            <button class="btn danger" type="submit">取消我的报名</button>
+          </form>
+        {% else %}
+          <form method="post" action="{{ url_for('main.register', activity_id=activity.id) }}">
+            <button class="btn primary" type="submit">
+              {% if activity.registration_mode == 'direct' %}立即报名{% else %}提交报名申请{% endif %}
+            </button>
+          </form>
+          {% if my_regs %}
+            <p class="hint">你最近一次报名状态：{{ my_regs[0].status_label }}
+              {% if my_regs[0].status == 'rejected' %}（已拒绝/已取消后可再次申请）{% endif %}</p>
+          {% endif %}
+        {% endif %}
+      {% else %}
+        <div class="banner">请先 <a href="{{ url_for('main.login') }}">登录</a> 后报名。</div>
+      {% endif %}
+    {% else %}
+      <div class="banner warn">活动已开始或已下线，不再接受新报名。</div>
+    {% endif %}
+  </section>
+
+  <aside class="card">
+    <h2>已通过名单（{{ attendees|length }}）</h2>
+    {% if attendees %}
+      <ol class="people">
+        {% for s in attendees %}
+          {% if s %}<li>{{ s.name }}<span class="muted"> · {{ s.student_no }}</span></li>{% endif %}
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="muted">暂无已通过的报名。</p>
+    {% endif %}
+
+    {% if my_regs %}
+      <h2>我的报名记录</h2>
+      <ul class="history">
+        {% for r in my_regs %}
+          <li>#{{ r.id }} · {{ r.status_label }} · {{ r.created_at.strftime('%m-%d %H:%M') }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

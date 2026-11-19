@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}活动列表 · CampusEvent{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>校园活动</h1>
+  <p class="muted">点击活动查看详情并报名。两类规则分别演示策略模式的两种实现。</p>
+</div>
+
+{% if not nav_student %}
+  <div class="banner">当前未登录，可以浏览活动；报名需先 <a href="{{ url_for('main.login') }}">以学生身份登录</a>。</div>
+{% endif %}
+
+<div class="cards">
+  {% for a in activities %}
+    {% set cap = approved.get(a.id, 0) %}
+    {% set reg = mine.get(a.id) %}
+    <article class="card activity">
+      <div class="activity-head">
+        <span class="tag">{{ a.category }}</span>
+        <span class="mode mode-{{ a.registration_mode }}">{{ a.mode_label }}</span>
+      </div>
+      <h2><a href="{{ url_for('main.activity_detail', activity_id=a.id) }}">{{ a.title }}</a></h2>
+      <p class="muted clamp">{{ a.description }}</p>
+      <ul class="meta">
+        <li>时间：{{ a.start_time.strftime('%Y-%m-%d %H:%M') }}</li>
+        <li>地点：{{ a.location }}</li>
+        <li>名额：<b>{{ cap }}/{{ a.capacity }}</b> 已通过
+          {% if cap >= a.capacity %}<span class="badge full">已满</span>{% endif %}
+        </li>
+      </ul>
+      <div class="activity-foot">
+        <a class="btn small" href="{{ url_for('main.activity_detail', activity_id=a.id) }}">查看详情</a>
+        {% if reg %}
+          <span class="status status-{{ reg.status }}">{{ reg.status_label }}</span>
+        {% endif %}
+      </div>
+    </article>
+  {% else %}
+    <div class="empty">暂无活动。管理员可在后台发布活动。</div>
+  {% endfor %}
+</div>
+{% endblock %}

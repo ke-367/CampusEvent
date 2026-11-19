@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}管理后台 · CampusEvent{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>管理后台</h1>
+  <p class="muted">发布活动 · 审批报名 · 查看通知留痕</p>
+</div>
+
+<div class="stat-row">
+  <div class="stat"><span class="num">{{ stats.activities }}</span><span class="muted">在线活动</span></div>
+  <div class="stat"><span class="num">{{ stats.registrations }}</span><span class="muted">有效报名（含待审核）</span></div>
+  <div class="stat"><span class="num">{{ stats.pending }}</span><span class="muted">待审核</span></div>
+  <div class="stat"><span class="num">{{ failures|length }}</span><span class="muted">通知失败留痕</span></div>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>待审核报名（{{ pending|length }}）</h2>
+    <table class="table">
+      <thead><tr><th>活动</th><th>名额</th><th>报名时间</th><th>操作</th></tr></thead>
+      <tbody>
+      {% for reg, act in pending %}
+        <tr>
+          <td>{{ act.title }}</td>
+          <td>{{ approved.get(act.id, 0) }}/{{ act.capacity }}
+            {% if approved.get(act.id, 0) >= act.capacity %}<span class="badge full">满</span>{% endif %}</td>
+          <td>{{ reg.created_at.strftime('%m-%d %H:%M') }}</td>
+          <td class="actions">
+            <form method="post" action="{{ url_for('main.approve', registration_id=reg.id) }}">
+              <button class="btn small primary" type="submit">批准</button>
+            </form>
+            <form method="post" action="{{ url_for('main.reject', registration_id=reg.id) }}">
+              <input type="text" name="reason" placeholder="拒绝原因（可空）">
+              <button class="btn small danger" type="submit">拒绝</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="muted">暂无待审核报名。</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>发布活动</h2>
+    <form method="post" action="{{ url_for('main.create_activity') }}" class="stack">
+      <label>活动名称<input name="title" required maxlength="60"></label>
+      <label>类别<input name="category" value="讲座"></label>
+      <label>地点<input name="location" placeholder="如：综合楼 201"></label>
+      <label>开始时间<input type="datetime-local" name="start_time" required></label>
+      <label>名额<input type="number" name="capacity" min="1" max="10000" value="30" required></label>
+      <label>报名规则
+        <select name="registration_mode">
+          {% for mode, label in supported_modes %}
+            <option value="{{ mode }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>活动说明<textarea name="description" rows="3"></textarea></label>
+      <button class="btn primary" type="submit">发布</button>
+    </form>
+  </section>
+</div>
+
+<section class="card">
+  <h2>全部活动</h2>
+  <table class="table">
+    <thead><tr><th>活动</th><th>规则</th><th>名额（已通过/上限）</th><th>开始时间</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>
+    {% for a in activities %}
+      <tr>
+        <td>{{ a.title }}</td>
+        <td><span class="mode mode-{{ a.registration_mode }}">{{ a.mode_label }}</span></td>
+        <td>{{ approved.get(a.id, 0) }}/{{ a.capacity }}</td>
+        <td>{{ a.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{% if a.status == 'published' %}在线{% else %}<span class="muted">已下架</span>{% endif %}</td>
+        <td>
+          {% if a.status == 'published' %}
+          <form method="post" action="{{ url_for('main.delete_activity', activity_id=a.id) }}">
+            <button class="btn small danger" type="submit">下架（软删除）</button>
+          </form>
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if failures %}
+<section class="card">
+  <h2>通知失败留痕</h2>
+  <table class="table">
+    <thead><tr><th>事件键</th><th>渠道</th><th>错误</th><th>时间</th></tr></thead>
+    <tbody>
+    {% for f in failures %}
+      <tr><td><code>{{ f['event_key'] }}</code></td><td>{{ f['channel'] }}</td>
+          <td class="muted">{{ f['error'] }}</td><td>{{ f['created_at'] }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+{% endblock %}

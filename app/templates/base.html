@@ -1,0 +1,61 @@
+{% autoescape true %}<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}校园活动报名与管理系统{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="{{ url_for('main.index') }}">
+      <span class="brand-mark">CE</span>
+      <span>CampusEvent<small>校园活动报名与管理系统</small></span>
+    </a>
+    <nav class="nav">
+      <a href="{{ url_for('main.index') }}">活动列表</a>
+      {% if nav_student %}
+        <a href="{{ url_for('main.my_registrations') }}">我的报名</a>
+        <a href="{{ url_for('main.my_messages') }}">我的消息{% if nav_unread %}<b class="dot">{{ nav_unread }}</b>{% endif %}</a>
+      {% endif %}
+      {% if nav_is_admin %}
+        <a class="nav-admin" href="{{ url_for('main.admin_dashboard') }}">管理后台</a>
+      {% endif %}
+      {% if nav_student or nav_is_admin %}
+        <a href="{{ url_for('main.logout') }}">退出</a>
+      {% else %}
+        <a class="nav-login" href="{{ url_for('main.login') }}">登录</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      <div class="flash-stack">
+        {% for category, msg in msgs %}
+          <div class="flash flash-{{ category }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% if nav_student %}
+    <div class="whoami">当前演示身份：<b>{{ nav_student.name }}</b>（{{ nav_student.student_no }}）</div>
+  {% elif nav_is_admin %}
+    <div class="whoami">当前演示身份：<b>管理员</b></div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    《软件工程》实验二 · CampusEvent · 策略模式 + 观察者模式演示系统
+  </div>
+</footer>
+</body>
+</html>
+{% endautoescape %}
