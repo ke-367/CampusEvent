@@ -12,8 +12,8 @@
 
 ```bash
 # 1) 取得代码
-git clone <你的仓库地址> 班级_学号_CampusEvent
-cd 班级_学号_CampusEvent
+git clone <你的仓库地址> CampusEvent
+cd CampusEvent
 
 # 2) 虚拟环境（Windows 用 python -m venv .venv 后执行 .venv\Scripts\activate）
 python3 -m venv .venv
@@ -55,7 +55,7 @@ python run.py          # 开发/演示：http://127.0.0.1:5000
 ## 2. 目录结构
 
 ```
-班级_学号_CampusEvent/
+CampusEvent/
 ├── app/
 │   ├── __init__.py              # 应用工厂 + 依赖组合根（策略注册表、事件总线、通知服务）
 │   ├── db.py                    # SQLite 连接、建表、事务边界、通知失败留痕

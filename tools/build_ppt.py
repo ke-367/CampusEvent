@@ -160,7 +160,7 @@ def build():
     write(tf, "CampusEvent：策略模式表达报名规则 · 观察者模式解耦通知 · 需求变更不改主流程", 18,
           RGBColor(0xC7, 0xD3, 0xEA))
     tf = textbox(s, Emu(1100000), Emu(4500000), Emu(10000000), Emu(600000), 13, RGBColor(0x8F, 0xA4, 0xCE))
-    write(tf, "姓名 ______　　班级 ______　　学号 ______　　2026 年 11 月", 13, RGBColor(0x8F, 0xA4, 0xCE))
+    write(tf, "宋木荣　　计科 2 班　　学号 217　　2026 年 11 月", 13, RGBColor(0x8F, 0xA4, 0xCE))
     for i, (k, v) in enumerate([("2", "个版本标签"), ("3", "种报名规则"), ("30", "项测试全通过")]):
         x = Emu(1100000 + i * 2600000)
         card(s, x, Emu(5300000), Emu(2300000), Emu(900000), RGBColor(0x2A, 0x36, 0x52),
