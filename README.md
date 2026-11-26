@@ -6,6 +6,9 @@
 - 运行形态：单机 Web 应用，公网部署后浏览器直接访问
 - 版本标签：`baseline-v1`（初始验收版本）、`change-v2`（需求变更完成版本）
 
+**在线地址**：<https://choice-picked-enlargement-meeting.trycloudflare.com/>
+**代码仓库**：<https://github.com/ke-367/CampusEvent>（含 `baseline-v1` / `change-v2` 两个标签，可用 `git clone` 直接取得）
+
 ---
 
 ## 1. 快速开始（从零运行）

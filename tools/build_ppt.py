@@ -472,7 +472,7 @@ def build():
     tf = textbox(s, Emu(0), Emu(2600000), W, Emu(900000), 40, WHITE, True, align=PP_ALIGN.CENTER)
     write(tf, "谢谢，请提问", 40, WHITE, True)
     tf = textbox(s, Emu(0), Emu(3600000), W, Emu(600000), 14, RGBColor(0xA9, 0xBC, 0xDE), align=PP_ALIGN.CENTER)
-    write(tf, "代码仓库 ______________　　公网地址 ______________", 14, RGBColor(0xA9, 0xBC, 0xDE))
+    write(tf, "代码仓库 github.com/ke-367/CampusEvent　　公网地址 choice-picked-enlargement-meeting.trycloudflare.com", 14, RGBColor(0xA9, 0xBC, 0xDE))
     tf = textbox(s, Emu(0), Emu(4200000), W, Emu(500000), 12, RGBColor(0x7E, 0x92, 0xB8), align=PP_ALIGN.CENTER)
     write(tf, "两个标签：baseline-v1 / change-v2　|　30 项测试全通过　|　文档见 docs/", 12,
           RGBColor(0x7E, 0x92, 0xB8))
