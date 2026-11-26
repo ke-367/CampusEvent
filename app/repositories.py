@@ -15,7 +15,13 @@ def _dt(value: str | None) -> datetime | None:
 
 
 def _row_to_student(row: sqlite3.Row) -> Student:
-    return Student(id=row["id"], name=row["name"], student_no=row["student_no"], email=row["email"])
+    return Student(
+        id=row["id"],
+        name=row["name"],
+        student_no=row["student_no"],
+        email=row["email"],
+        grade=row["grade"] if "grade" in row.keys() else 0,
+    )
 
 
 def _row_to_activity(row: sqlite3.Row) -> Activity:
@@ -29,6 +35,7 @@ def _row_to_activity(row: sqlite3.Row) -> Activity:
         capacity=row["capacity"],
         registration_mode=row["registration_mode"],
         status=row["status"],
+        grade_restriction=row["grade_restriction"] if "grade_restriction" in row.keys() else "",
     )
 
 
@@ -95,12 +102,13 @@ class ActivityRepository:
         start_time: datetime,
         capacity: int,
         registration_mode: str,
+        grade_restriction: str = "",
     ) -> Activity:
         now = datetime.now().isoformat(timespec="seconds")
         cur = self._conn.execute(
             "INSERT INTO activities(title, description, category, location, start_time, "
-            "capacity, registration_mode, status, created_at) "
-            "VALUES (?,?,?,?,?,?,?,'published',?)",
+            "capacity, registration_mode, grade_restriction, status, created_at) "
+            "VALUES (?,?,?,?,?,?,?,?,'published',?)",
             (
                 title,
                 description,
@@ -109,6 +117,7 @@ class ActivityRepository:
                 start_time.isoformat(timespec="minutes"),
                 capacity,
                 registration_mode,
+                grade_restriction,
                 now,
             ),
         )

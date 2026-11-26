@@ -34,31 +34,38 @@ def client(app):
 
 
 def _seed(app) -> None:
-    """两名学生 + 四个活动：覆盖直接/审核两类规则、满员、即将开始等边界。"""
+    """三名学生 + 五个活动：覆盖直接/审核/候补/年级限定四类规则、满员、即将开始等边界。"""
     conn = connect(app.config["DATABASE"])
     now = datetime.now()
     try:
         with transaction(conn):
-            conn.execute("INSERT INTO students(student_no, name, email) VALUES (?,?,?)",
-                         ("S001", "张小明", "zxm@example.edu.cn"))
-            conn.execute("INSERT INTO students(student_no, name, email) VALUES (?,?,?)",
-                         ("S002", "李小红", "lxh@example.edu.cn"))
+            for no, name, email, grade in (
+                ("S001", "张小明", "zxm@example.edu.cn", 2),
+                ("S002", "李小红", "lxh@example.edu.cn", 1),
+                ("S003", "王大力", "wdl@example.edu.cn", 4),
+            ):
+                conn.execute(
+                    "INSERT INTO students(student_no, name, email, grade) VALUES (?,?,?,?)",
+                    (no, name, email, grade),
+                )
             rows = [
-                # title, capacity, mode, 开始时间偏移, 状态
-                ("迎新晚会", 120, "direct", 72, "published"),
-                ("编程马拉松", 3, "approval", 120, "published"),
-                ("小型沙龙", 1, "direct", 48, "published"),
-                ("已开始的活动", 10, "direct", -2, "published"),
-                ("已下架活动", 10, "direct", 96, "deleted"),
+                # title, capacity, mode, 开始时间偏移, 状态, 限报年级
+                ("迎新晚会", 120, "direct", 72, "published", ""),
+                ("编程马拉松", 3, "approval", 120, "published", ""),
+                ("小型沙龙", 1, "direct", 48, "published", ""),
+                ("已开始的活动", 10, "direct", -2, "published", ""),
+                ("已下架活动", 10, "direct", 96, "deleted", ""),
+                ("年级限定活动", 2, "grade_limited", 60, "published", "2,3"),
             ]
-            for title, capacity, mode, offset_hours, status in rows:
+            for title, capacity, mode, offset_hours, status, grade_restriction in rows:
                 conn.execute(
                     "INSERT INTO activities(title, description, category, location, start_time, "
-                    "capacity, registration_mode, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+                    "capacity, registration_mode, grade_restriction, status, created_at) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?)",
                     (
                         title, f"{title} 的说明", "测试", "测试地点",
                         (now + timedelta(hours=offset_hours)).isoformat(timespec="minutes"),
-                        capacity, mode, status, now.isoformat(timespec="seconds"),
+                        capacity, mode, grade_restriction, status, now.isoformat(timespec="seconds"),
                     ),
                 )
     finally:

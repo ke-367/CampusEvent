@@ -161,7 +161,7 @@ def build():
           RGBColor(0xC7, 0xD3, 0xEA))
     tf = textbox(s, Emu(1100000), Emu(4500000), Emu(10000000), Emu(600000), 13, RGBColor(0x8F, 0xA4, 0xCE))
     write(tf, "宋木荣　　计科 2 班　　学号 217　　2026 年 11 月", 13, RGBColor(0x8F, 0xA4, 0xCE))
-    for i, (k, v) in enumerate([("2", "个版本标签"), ("3", "种报名规则"), ("30", "项测试全通过")]):
+    for i, (k, v) in enumerate([("2", "个版本标签"), ("4", "种报名规则"), ("41", "项测试全通过")]):
         x = Emu(1100000 + i * 2600000)
         card(s, x, Emu(5300000), Emu(2300000), Emu(900000), RGBColor(0x2A, 0x36, 0x52),
              RGBColor(0x3C, 0x4C, 0x70))
@@ -179,7 +179,7 @@ def build():
     tf = textbox(s, left + Emu(300000), top + Emu(250000), wd - Emu(600000), Emu(3800000), 13)
     write(tf, "四个必须交付的成果", 15, ACCENT, True)
     for item in [
-        "一套能表达三种报名规则（直接 / 审核 / 候补）的领域模型",
+        "一套能表达四种报名规则（直接 / 审核 / 候补 / 年级限定）的领域模型",
         "报名与通知松耦合，通知失败不破坏业务事实",
         "两个可比对版本：baseline-v1 与 change-v2，差异用 git 量化",
         "可运行 Web 系统 + 可复现测试 + 真实截图证据",
@@ -472,9 +472,9 @@ def build():
     tf = textbox(s, Emu(0), Emu(2600000), W, Emu(900000), 40, WHITE, True, align=PP_ALIGN.CENTER)
     write(tf, "谢谢，请提问", 40, WHITE, True)
     tf = textbox(s, Emu(0), Emu(3600000), W, Emu(600000), 14, RGBColor(0xA9, 0xBC, 0xDE), align=PP_ALIGN.CENTER)
-    write(tf, "代码仓库 github.com/ke-367/CampusEvent　　公网地址 choice-picked-enlargement-meeting.trycloudflare.com", 14, RGBColor(0xA9, 0xBC, 0xDE))
+    write(tf, "代码仓库 github.com/ke-367/CampusEvent　　公网地址 bracket-pierce-dow-sql.trycloudflare.com", 14, RGBColor(0xA9, 0xBC, 0xDE))
     tf = textbox(s, Emu(0), Emu(4200000), W, Emu(500000), 12, RGBColor(0x7E, 0x92, 0xB8), align=PP_ALIGN.CENTER)
-    write(tf, "两个标签：baseline-v1 / change-v2　|　30 项测试全通过　|　文档见 docs/", 12,
+    write(tf, "两个标签：baseline-v1 / change-v2　|　41 项测试全通过　|　文档见 docs/", 12,
           RGBColor(0x7E, 0x92, 0xB8))
 
     prs.save(OUT)

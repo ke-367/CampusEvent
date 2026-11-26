@@ -90,6 +90,7 @@ class ActivityService:
                 start_time=start_time,
                 capacity=capacity,
                 registration_mode=mode,
+                grade_restriction=(form.get("grade_restriction") or "").strip(),
             )
         return activity
 

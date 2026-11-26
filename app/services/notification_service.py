@@ -81,6 +81,8 @@ class EmailChannel:
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
         filename = f"{stamp}_{payload.student.student_no}_{payload.registration_id or 'na'}.eml"
         content = (
+            f"X-Mock-Sender: MockEmailSender\r\n"
+            f"X-Delivery-Status: delivered\r\n"
             f"To: {payload.student.email}\r\n"
             f"Subject: =?UTF-8?B?{_encode_header(payload.title)}?=\r\n"
             f"Date: {datetime.now().isoformat(timespec='seconds')}\r\n"

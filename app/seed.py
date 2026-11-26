@@ -11,9 +11,9 @@ from app import create_app
 from app.db import connect, ensure_schema, transaction
 
 STUDENTS = [
-    ("S2024001", "张小明", "zhangxm@example.edu.cn"),
-    ("S2024002", "李小红", "lixh@example.edu.cn"),
-    ("S2024003", "王大力", "wangdl@example.edu.cn"),
+    ("S2024001", "张小明", "zhangxm@example.edu.cn", 2),
+    ("S2024002", "李小红", "lixh@example.edu.cn", 1),
+    ("S2024003", "王大力", "wangdl@example.edu.cn", 4),
 ]
 
 ACTIVITIES = [
@@ -62,6 +62,16 @@ ACTIVITIES = [
         capacity=2,
         registration_mode="waitlist",
     ),
+    dict(
+        title="大二大三创新实验室开放日",
+        description="需求变更 CR-01 新增的年级限定直接报名演示：仅大二、大三可报名，其他年级报名会被明确拒绝。",
+        category="科技",
+        location="工程训练中心 3 楼",
+        start_offset_hours=168,
+        capacity=30,
+        registration_mode="grade_limited",
+        grade_restriction="2,3",
+    ),
 ]
 
 
@@ -83,16 +93,16 @@ def seed(reset: bool = False) -> None:
             if existing:
                 print("数据库已有数据，跳过初始化（如需重置请加 --reset）")
                 return
-            for no, name, email in STUDENTS:
+            for no, name, email, grade in STUDENTS:
                 conn.execute(
-                    "INSERT INTO students(student_no, name, email) VALUES (?,?,?)",
-                    (no, name, email),
+                    "INSERT INTO students(student_no, name, email, grade) VALUES (?,?,?,?)",
+                    (no, name, email, grade),
                 )
             for item in ACTIVITIES:
                 conn.execute(
                     "INSERT INTO activities(title, description, category, location, start_time, "
-                    "capacity, registration_mode, status, created_at) "
-                    "VALUES (?,?,?,?,?,?,?,'published',?)",
+                    "capacity, registration_mode, grade_restriction, status, created_at) "
+                    "VALUES (?,?,?,?,?,?,?,?,'published',?)",
                     (
                         item["title"],
                         item["description"],
@@ -101,6 +111,7 @@ def seed(reset: bool = False) -> None:
                         (now + timedelta(hours=item["start_offset_hours"])).isoformat(timespec="minutes"),
                         item["capacity"],
                         item["registration_mode"],
+                        item.get("grade_restriction", ""),
                         now.isoformat(timespec="seconds"),
                     ),
                 )

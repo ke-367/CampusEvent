@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS students (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     student_no  TEXT NOT NULL UNIQUE,
     name        TEXT NOT NULL,
-    email       TEXT NOT NULL
+    email       TEXT NOT NULL,
+    grade       INTEGER NOT NULL DEFAULT 0   -- 年级 1—4（需求变更 CR-01 新增）
 );
 
 CREATE TABLE IF NOT EXISTS activities (
@@ -24,7 +25,8 @@ CREATE TABLE IF NOT EXISTS activities (
     location          TEXT NOT NULL DEFAULT '',
     start_time        TEXT NOT NULL,           -- ISO 8601，活动开始时间
     capacity          INTEGER NOT NULL,        -- 名额上限，按“已通过”报名计数
-    registration_mode TEXT NOT NULL,           -- direct / approval
+    registration_mode TEXT NOT NULL,           -- direct / approval / waitlist / grade_limited
+    grade_restriction TEXT NOT NULL DEFAULT '',-- 限报年级集合，如 "2,3"（CR-01 新增）
     status            TEXT NOT NULL DEFAULT 'published',  -- published / deleted（软删除）
     created_at        TEXT NOT NULL
 );
@@ -120,8 +122,19 @@ def ensure_schema(db_path: str | None = None) -> None:
     try:
         conn.executescript(SCHEMA)
         _migrate_change_v2(conn)
+        _migrate_change_cr01(conn)
     finally:
         conn.close()
+
+
+def _migrate_change_cr01(conn: sqlite3.Connection) -> None:
+    """需求变更 CR-01（年级限定报名）的增量迁移：只加列，不改动历史数据语义。"""
+    student_cols = {row["name"] for row in conn.execute("PRAGMA table_info(students)")}
+    if "grade" not in student_cols:
+        conn.execute("ALTER TABLE students ADD COLUMN grade INTEGER NOT NULL DEFAULT 0")
+    activity_cols = {row["name"] for row in conn.execute("PRAGMA table_info(activities)")}
+    if "grade_restriction" not in activity_cols:
+        conn.execute("ALTER TABLE activities ADD COLUMN grade_restriction TEXT NOT NULL DEFAULT ''")
 
 
 def _migrate_change_v2(conn: sqlite3.Connection) -> None:

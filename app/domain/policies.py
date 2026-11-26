@@ -92,7 +92,7 @@ class ApprovalRegistrationPolicy(RegistrationPolicy):
 
 
 class WaitlistRegistrationPolicy(RegistrationPolicy):
-    """候补报名（需求变更 CR-01 新增）：名额未满直接通过；已满则进入候补队列。
+    """候补报名：名额未满直接通过；已满则进入候补队列。
 
     与另外两种规则的差别只有“满员时的处置方式”，因此复用同一条 CapacityRule，
     没有改动 RegistrationService 的任何代码。
@@ -125,6 +125,38 @@ class WaitlistRegistrationPolicy(RegistrationPolicy):
         )
 
 
+class GradeLimitedRegistrationPolicy(RegistrationPolicy):
+    """年级限定直接报名（需求变更 CR-01 新增）。
+
+    设计选择：不把“年级判断”塞进 DirectRegistrationPolicy，而是新增独立策略，
+    并在内部**组合**已有的无状态 CapacityRule——于是“年级门槛”是新增的准入条件，
+    “名额上限”仍复用唯一的口径实现（不是复制一份名额代码）。
+    RegistrationService 主流程一行未改：它只按活动上的 registration_mode 取策略。
+    """
+
+    mode = RegistrationMode.GRADE_LIMITED.value
+    key = "policy.grade_limited"
+    label = "年级限定报名"
+
+    def __init__(self, capacity_rule: CapacityRule):
+        self._capacity = capacity_rule
+
+    def submit(self, context: SubmissionContext) -> PolicyDecision:
+        allowed = context.activity.allowed_grades
+        grade = context.student.grade
+        if allowed and grade not in allowed:
+            text = "、".join(str(g) for g in allowed)
+            raise DomainError(
+                f"活动「{context.activity.title}」仅限 {text} 年级报名，"
+                f"你当前是 {grade or '未设置'} 年级，无法报名。"
+            )
+        snap = self._capacity.ensure_available(context.activity, context.registrations)
+        return PolicyDecision(
+            status=RegistrationStatus.APPROVED.value,
+            message=f"报名成功，已占用名额（{snap.approved + 1}/{snap.capacity}）。",
+        )
+
+
 class PolicyRegistry:
     """策略注册表：按活动上的 registration_mode 选择实现，主流程不出现 if/elif。"""
 
@@ -135,6 +167,7 @@ class PolicyRegistry:
             DirectRegistrationPolicy(capacity_rule),
             ApprovalRegistrationPolicy(capacity_rule),
             WaitlistRegistrationPolicy(capacity_rule),
+            GradeLimitedRegistrationPolicy(capacity_rule),
         ):
             self.register(policy)
 

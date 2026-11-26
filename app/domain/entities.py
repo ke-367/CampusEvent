@@ -20,7 +20,8 @@ class RegistrationMode(str, Enum):
 
     DIRECT = "direct"        # 直接报名：名额充足即“已通过”
     APPROVAL = "approval"    # 审核报名：提交后“待审核”，由管理员决定
-    WAITLIST = "waitlist"    # 候补报名：名额满则排队，有人取消自动转正（v2 新增）
+    WAITLIST = "waitlist"    # 候补报名：名额满则排队，有人取消自动转正
+    GRADE_LIMITED = "grade_limited"  # 年级限定报名：仅指定年级可报（CR-01 新增）
 
 
 class RegistrationStatus(str, Enum):
@@ -60,6 +61,7 @@ class Student:
     name: str
     student_no: str
     email: str
+    grade: int = 0          # 年级 1—4（CR-01 新增字段；0 表示未设置）
 
 
 @dataclass(frozen=True)
@@ -73,16 +75,35 @@ class Activity:
     capacity: int
     registration_mode: str
     status: str = ActivityStatus.PUBLISHED.value
+    grade_restriction: str = ""   # "2,3" 这类逗号分隔的年级集合（CR-01 新增字段）
 
     def is_open(self, now: datetime) -> bool:
         """活动未删除且尚未开始，才允许新增报名。"""
         return self.status == ActivityStatus.PUBLISHED.value and now < self.start_time
 
     @property
+    def allowed_grades(self) -> tuple[int, ...]:
+        """解析限报年级集合；空字符串表示不限年级。"""
+        parts = [p.strip() for p in (self.grade_restriction or "").split(",") if p.strip()]
+        grades = []
+        for part in parts:
+            try:
+                grades.append(int(part))
+            except ValueError:
+                continue
+        return tuple(grades)
+
+    @property
     def mode_label(self) -> str:
-        return {"direct": "直接报名", "approval": "审核报名", "waitlist": "候补报名"}.get(
-            self.registration_mode, self.registration_mode
-        )
+        return MODE_LABELS.get(self.registration_mode, self.registration_mode)
+
+
+MODE_LABELS = {
+    "direct": "直接报名",
+    "approval": "审核报名",
+    "waitlist": "候补报名",
+    "grade_limited": "年级限定报名",
+}
 
 
 @dataclass(frozen=True)

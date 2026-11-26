@@ -153,6 +153,7 @@ def test_v7_registry_supports_three_modes(app):
             "direct": "直接报名",
             "approval": "审核报名",
             "waitlist": "候补报名",
+            "grade_limited": "年级限定报名",   # 需求变更 CR-01 新增的第四种规则
         }
         assert modes["waitlist"] == "候补报名"
 
